@@ -1,0 +1,29 @@
+variable:
+x
+5
+
+variable:
+y
+12
+
+math:
+x
++
+y
+
+if:
+x
+>
+y
+print:
+X is bigger
+
+if:
+x
+<
+y
+print:
+Y is bigger
+
+print:
+learn more in READ ME.txt
