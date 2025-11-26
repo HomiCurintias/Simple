@@ -1,75 +1,86 @@
 import os
 import requests
 
-variables = {}
-functions = {}
+def run_simple_script(file):
+    variables = {}
+    functions = {}
 
-file = input("File name: ")
+    if not isinstance(file, str):
+        raise TypeError(f"run_simple_script expected filename (str), got: {type(file)}")
 
-with open(file, "r", encoding="utf-8") as Code:
-    lines = [l.strip() for l in Code]
+    with open(file, "r", encoding="utf-8") as Code:
+        lines = [l.strip() for l in Code]
 
-i = 0
-while i < len(lines):
+    i = 0
+    while i < len(lines):
+        if lines[i] == "include:":
+            if i + 1 < len(lines):
+                filename = lines[i + 1].strip()
+                print(f"[COMPILER] Including file '{filename}'")
 
-    # --- CREATE FILE ---
-    if lines[i] == "create file:":
-        if i + 1 < len(lines):
-            filename = lines[i + 1]
-            with open(filename, "w", encoding="utf-8") as output:
-                if i + 2 < len(lines):
-                    content = lines[i + 2]
-                    output.write(content)
-            print(f"[OK] Arquivo '{filename}' criado.")
-            i += 3
-        else:
-            break
+                with open(filename, "r", encoding="utf-8") as inc:
+                    included_lines = [l.strip() for l in inc.readlines()]
 
-    # --- READ FILE ---
-    elif lines[i] == "read file:":
-        if i + 1 < len(lines):
+                lines = lines[:i] + included_lines + lines[i+2:]
+                continue
+            else:
+                print("[COMPILER ERROR] 'include:' sem arquivo!")
+                break
+        i += 1
+
+    i = 0
+    while i < len(lines):
+
+        # --- CREATE FILE ---
+        if lines[i] == "create file:":
+            if i + 1 < len(lines):
+                filename = lines[i + 1]
+                with open(filename, "w", encoding="utf-8") as output:
+                    if i + 2 < len(lines):
+                        content = lines[i + 2]
+                        output.write(content)
+                print(f"[OK] File '{filename}' created.")
+                i += 3
+                continue
+
+        # --- READ FILE ---
+        if lines[i] == "read file:":
             filename2 = lines[i + 1]
             try:
                 with open(filename2, "r", encoding="utf-8") as f2:
                     content2 = f2.read()
                 with open("Output.txt", "a", encoding="utf-8") as out:
                     out.write(content2 + "\n")
-                print(f"[OK] Conteúdo de '{filename2}' adicionado ao Output.txt")
+                print(f"[OK] Content of '{filename2}' added to Output.txt")
             except FileNotFoundError:
-                print(f"[ERRO] Arquivo '{filename2}' não encontrado.")
+                print(f"[ERROR] File '{filename2}' not found.")
             i += 2
-        else:
-            break
+            continue
 
-    # --- INPUT ---
-    elif lines[i] == "input:":
-        if i + 1 < len(lines):
+        # --- INPUT ---
+        if lines[i] == "input:":
             PromptName = lines[i + 1]
             newContent = input(PromptName + ": ")
             variables[PromptName] = newContent
             with open("Output.txt", "a", encoding="utf-8") as out:
                 out.write(newContent + "\n")
-            print(f"[OK] Entrada '{PromptName}' salva em Output.txt")
+            print(f"[OK] Input '{PromptName}' saved to Output.txt")
             i += 2
-        else:
-            break
+            continue
 
-    # --- PRINT ---
-    elif lines[i] == "print:":
-        if i + 1 < len(lines):
+        # --- PRINT ---
+        if lines[i] == "print:":
             printContent = lines[i + 1]
             if printContent in variables:
                 printContent = variables[printContent]
             with open("Output.txt", "a", encoding="utf-8") as out:
                 out.write(str(printContent) + "\n")
-            print(f"[OK] Texto '{printContent}' salvo em Output.txt")
+            print(f"[OK] Text '{printContent}' saved to Output.txt")
             i += 2
-        else:
-            break
+            continue
 
-    # --- MATH ---
-    elif lines[i] == "math:":
-        if i + 3 < len(lines):
+        # --- MATH ---
+        if lines[i] == "math:":
             try:
                 x = lines[i + 1]
                 op = lines[i + 2].strip()
@@ -81,170 +92,122 @@ while i < len(lines):
                 x = int(x)
                 y = int(y)
 
-                if op == "+":
-                    z = x + y
-                elif op == "-":
-                    z = x - y
-                elif op == "*":
-                    z = x * y
-                elif op == "/":
-                    z = x / y if y != 0 else "Erro: divisão por zero"
-                else:
-                    z = f"Operador inválido: {op}"
+                match op:
+                    case "+": z = x + y
+                    case "-": z = x - y
+                    case "*": z = x * y
+                    case "/": z = x / y if y != 0 else "Error: division by zero"
+                    case _: z = f"Invalid operator: {op}"
 
                 with open("Output.txt", "a", encoding="utf-8") as out:
                     out.write(str(z) + "\n")
 
                 print(f"[OK] {x} {op} {y} = {z}")
             except ValueError:
-                print("[ERRO] Valor inválido para operação matemática")
+                print("[ERROR] Invalid value for math operation")
             i += 4
-        else:
-            break
+            continue
 
-    # --- DELETE FILE ---
-    elif lines[i] == "delete:":
-        if i + 1 < len(lines):
+        # --- DELETE FILE ---
+        if lines[i] == "delete:":
             DeletedFileName = lines[i + 1]
             try:
                 os.remove(DeletedFileName)
-                print(f"[OK] Arquivo '{DeletedFileName}' deletado.")
+                print(f"[OK] File '{DeletedFileName}' deleted.")
             except FileNotFoundError:
-                print(f"[ERRO] Arquivo '{DeletedFileName}' não encontrado.")
+                print(f"[ERROR] File '{DeletedFileName}' not found.")
             i += 2
-        else:
-            break
+            continue
 
-    # --- GET (HTTP) ---
-    elif lines[i] == "get:":
-        if i + 1 < len(lines):
+        # --- GET ---
+        if lines[i] == "get:":
             URL = lines[i + 1]
             try:
                 response = requests.get(URL)
                 if response.status_code == 200:
                     with open("Output.txt", "a", encoding="utf-8") as out:
                         out.write(response.text + "\n")
-                    print(f"[OK] Conteúdo de {URL} salvo em Output.txt")
+                    print(f"[OK] Content from {URL} saved to Output.txt")
                 else:
-                    print(f"[ERRO] Falha ao acessar {URL} (status {response.status_code})")
+                    print(f"[ERROR] Failed to access {URL}")
             except requests.RequestException as e:
-                print(f"[ERRO] Erro ao acessar {URL}: {e}")
+                print(f"[ERROR] Error accessing {URL}: {e}")
             i += 2
-        else:
-            break
+            continue
 
-    # --- IF ---
-    elif lines[i] == "if:":
-        if i + 4 < len(lines):
-            Data = lines[i + 1]
-            Comparative = lines[i + 2]
-            SecondData = lines[i + 3]
+        # --- IF ---
+        if lines[i] == "if:":
+            Data = variables.get(lines[i + 1], lines[i + 1])
+            Comp = lines[i + 2]
+            Second = variables.get(lines[i + 3], lines[i + 3])
             Action = lines[i + 4]
 
-            Data = variables.get(Data, Data)
-            SecondData = variables.get(SecondData, SecondData)
+            condition = (
+                (Comp == "==" and Data == Second) or
+                (Comp == "!=" and Data != Second) or
+                (Comp == ">" and Data > Second) or
+                (Comp == "<" and Data < Second)
+            )
 
-            condition = False
-            if Comparative == "==":
-                condition = (str(Data) == str(SecondData))
-            elif Comparative == "!=":
-                condition = (str(Data) != str(SecondData))
-            elif Comparative == ">":
-                condition = (str(Data) > str(SecondData))
-            elif Comparative == "<":
-                condition = (str(Data) < str(SecondData))
+            print(f"[OK] IF → {condition}")
 
-            if condition:
-                print(f"[OK] Condição ({Data} {Comparative} {SecondData}) verdadeira, executando '{Action}'")
-            else:
-                print(f"[INFO] Condição ({Data} {Comparative} {SecondData}) falsa, pulando")
             i += 5
-        else:
-            break
+            continue
 
-    # --- VARIABLE ---
-    elif lines[i] == "variable:":
-        if i + 2 < len(lines):
+        # --- VARIABLE ---
+        if lines[i] == "variable:":
             VarName = lines[i + 1]
             VarVal = lines[i + 2]
-            try:
-                VarVal = int(VarVal)
-            except ValueError:
-                pass
+            try: VarVal = int(VarVal)
+            except: pass
             variables[VarName] = VarVal
-            print(f"[OK] Variável '{VarName}' definida como {VarVal}")
+            print(f"[OK] Variable '{VarName}' set to {VarVal}")
             i += 3
-        else:
-            break
+            continue
 
-    # --- FUNCTION ---
-    elif lines[i] == "function:":
-        if i + 1 < len(lines):
+        # --- FUNCTION ---
+        if lines[i] == "function:":
             header = lines[i + 1].split()
             func_name = header[0]
             params = header[1:]
             func_body = []
             i += 2
-            while i < len(lines) and lines[i] != "endfunction":
+            while lines[i] != "endfunction":
                 func_body.append(lines[i])
                 i += 1
             functions[func_name] = {"params": params, "body": func_body}
-            print(f"[OK] Função '{func_name}' definida com parâmetros {params}")
+            print(f"[OK] Function '{func_name}' defined")
             i += 1
-        else:
-            break
+            continue
 
-    # --- CALL FUNCTION ---
-    elif lines[i] == "call:":
-        if i + 1 < len(lines):
+        # --- CALL ---
+        if lines[i] == "call:":
             parts = lines[i + 1].split()
             func_name = parts[0]
             args = parts[1:]
-            if func_name in functions:
-                func = functions[func_name]
-                params = func["params"]
-                body = func["body"]
 
-                local_vars = dict(variables)
-                for p, a in zip(params, args):
-                    try:
-                        a = int(a)
-                    except ValueError:
-                        pass
-                    local_vars[p] = a
-
-                print(f"[OK] Chamando função '{func_name}' com {args}")
-
-                for j, line in enumerate(reversed(body)):
-                    lines.insert(i + 2, line)
-
-                variables.update(local_vars)
-
-            else:
-                print(f"[ERRO] Função '{func_name}' não definida")
-            i += 2
-        else:
-            break
-
-    # --- LOOP ---
-    elif lines[i] == "loop:":
-        if i + 1 < len(lines):
-            try:
-                times = int(lines[i + 1])
-                loop_body = []
+            if func_name not in functions:
+                print(f"[ERROR] Function '{func_name}' not defined")
                 i += 2
-                while i < len(lines) and lines[i] != "endloop":
-                    loop_body.append(lines[i])
-                    i += 1
-                print(f"[OK] Loop de {times} vezes")
-                for _ in range(times):
-                    for cmd in reversed(loop_body):
-                        lines.insert(i + 1, cmd)
-                i += 1
-            except ValueError:
-                print("[ERRO] Valor inválido no loop")
-        else:
-            break
+                continue
 
-    else:
+            func = functions[func_name]
+            params = func["params"]
+            body = func["body"]
+
+            local_vars = dict(variables)
+            for p, a in zip(params, args):
+                try: a = int(a)
+                except: pass
+                local_vars[p] = a
+
+            print(f"[OK] Calling '{func_name}'")
+
+            for cmd in reversed(body):
+                lines.insert(i + 2, cmd)
+
+            variables.update(local_vars)
+            i += 2
+            continue
+
         i += 1
