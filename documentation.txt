@@ -1,0 +1,162 @@
+📘 SimpleScript Documentation
+🧩 Overview
+
+SimpleScript is a minimal interpreted language that supports:
+
+File inclusion (include:)
+
+Function definition (function: / endfunction)
+
+Function execution (call:)
+
+Printing (print:)
+
+All interpretation logic is contained in:
+
+simple.py
+
+
+And the main execution script is:
+
+main.py
+
+📂 File Structure
+project/
+ ├── main.py
+ ├── simple.py
+ ├── main.txt
+ └── lib.txt
+
+📄 Language Syntax
+1. Include Files
+
+Includes another SimpleScript file to be executed before the current file.
+
+include:
+file_name
+
+
+Example:
+
+include:
+lib.txt
+
+2. Define Function
+function:
+function_name
+    ...body...
+endfunction
+
+
+Example:
+
+function:
+hello
+print:
+hello world
+endfunction
+
+
+The function body is stored in memory and executed only when the function is called.
+
+3. Call Function
+call:
+function_name
+
+
+Example:
+
+call:
+hello
+
+⚙️ Interpreter Workflow
+📌 run_simple_script(filename)
+
+Reads and interprets the file line by line:
+
+When encountering include:, it imports another file.
+
+When encountering function:, it stores the function in memory.
+
+When encountering call:, it executes the function.
+
+📌 define_function(name, body)
+
+Stores the function name and body in a dictionary:
+
+functions[name] = body
+
+
+Outputs:
+
+[OK] Function 'hello' defined
+
+📌 call_function(name)
+
+Finds the function and executes each line in its body:
+
+Supports the print: command
+
+Can be expanded to support variables, conditionals, loops, etc.
+
+Outputs:
+
+[CALL] Running 'hello'
+
+🔧 Complete Example
+lib.txt
+function:
+hello
+print:
+hello world
+endfunction
+
+main.txt
+include:
+lib.txt
+
+call:
+hello
+
+Execution
+
+Terminal:
+
+python3 main.py
+
+
+Output:
+
+[COMPILER] Running script 'main.txt'
+[COMPILER] Including file 'lib.txt'
+[COMPILER] Running script 'lib.txt'
+[OK] Function 'hello' defined
+[CALL] Running 'hello'
+hello world
+
+🚨 Common Errors
+❗ Function not found
+[ERROR] Function 'hello' not found
+
+
+Causes:
+
+Function is defined after being called
+
+Included file does not exist
+
+function: block is incorrectly formatted
+
+endfunction is missing
+
+📦 Possible Extensions
+
+Future improvements could include:
+
+✅ Variables
+✅ Function parameters
+✅ Conditionals (if:)
+✅ Loops (loop:)
+✅ Math operations
+✅ Bytecode generation
+✅ Compilation to Python / C / Rust
