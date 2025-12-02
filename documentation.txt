@@ -1,3 +1,5 @@
+#documentation made by chatGPT
+
 📘 SimpleScript Documentation
 🧩 Overview
 
