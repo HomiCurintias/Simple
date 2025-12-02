@@ -1,7 +1,7 @@
 import os
 import requests
 
-def run_simple_script(file):
+def run(file):
     variables = {}
     functions = {}
 
